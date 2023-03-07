@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const LIST_TYPE = [
   {
-    value: null,
+    value: "",
     label: "---All---",
   },
   {
@@ -31,46 +31,58 @@ const LIST_TYPE = [
 
 function App() {
   const [lisProduct, setListProduct] = useState([]);
+  const [lisProductFromApi, setListProductFromApi] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [keySearch, setKeySearch] = useState("");
-  const [brandtypeSearch, setBrandtypeSearch] = useState(null);
+  const [brandtypeSearch, setBrandtypeSearch] = useState("");
 
-  const getListProdcts = async () => {
+  const getListProdcts = async (keySearch, brandtypeSearch) => {
     setIsLoading(true);
     await fetch("https://dummyjson.com/products?limit=20")
       .then((res) => res.json())
       .then(
         (result) => {
-          handleSearchProducts(result.products);
+          handleSearchProducts(result.products, keySearch, brandtypeSearch);
+          setListProductFromApi(result.products);
         },
         (error) => {}
       );
     setIsLoading(false);
   };
 
-  const handleSearchProducts = (listProducts) => {
+  const handleSearchProducts = (listProducts, keySearch, brandtypeSearch) => {
     const listTemp = listProducts.filter(
-      (item) => item.title.includes(keySearch) || brandtypeSearch === item.brand
+      (item) =>
+        item.title.includes(keySearch) &&
+        (brandtypeSearch === item.brand || brandtypeSearch === "")
     );
     setListProduct(listTemp);
   };
 
   const handleReload = () => {
     //save data in session storage
+    sessionStorage.setItem("brandSearh", brandtypeSearch);
+    sessionStorage.setItem("keySearch", keySearch);
   };
 
   const handleSetDefaultData = () => {
     //handle set data search from session storage
+    setKeySearch(sessionStorage.getItem("keySearch") ?? "");
+    setBrandtypeSearch(sessionStorage.getItem("brandSearh") ?? "");
   };
 
+  //event to handle reload page save data
+  window.addEventListener("beforeunload", handleReload);
+
   useEffect(() => {
-    //event to handle reload page save data
     handleSetDefaultData();
-    window.addEventListener("beforeunload", handleReload);
-    getListProdcts();
+    getListProdcts(
+      sessionStorage.getItem("keySearch") ?? "",
+      sessionStorage.getItem("brandSearh") ?? ""
+    );
 
     //clear event
-    return window.removeEventListener("beforeunload", handleReload);
+    return window.removeEventListener("beforeunload", () => handleReload);
   }, []);
 
   return (
@@ -81,6 +93,7 @@ function App() {
           <select
             name="select-type"
             onChange={(event) => setBrandtypeSearch(event.target.value)}
+            value={brandtypeSearch}
           >
             {LIST_TYPE.map((item, idx) => (
               <option key={idx} value={item.value}>
@@ -90,9 +103,20 @@ function App() {
           </select>
           <input
             type="text"
+            value={keySearch}
             onChange={(event) => setKeySearch(event.target.value)}
           />
-          <button>Search</button>
+          <button
+            onClick={() =>
+              handleSearchProducts(
+                lisProductFromApi,
+                keySearch,
+                brandtypeSearch
+              )
+            }
+          >
+            Search by Brand and Title
+          </button>
         </div>
       </div>
       {isLoading === false ? (

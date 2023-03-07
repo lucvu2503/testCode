@@ -31,7 +31,7 @@ body {
   border-top: 1px solid black;
   padding: 20px;
   display: flex;
-  justify-content: start;
+  gap: 20px;
 }
 
 .table-container {
